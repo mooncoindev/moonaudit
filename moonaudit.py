@@ -6,6 +6,7 @@
 from bitcoinrpc.authproxy import AuthServiceProxy, JSONRPCException
 import json
 import time
+import os
 
 def find_between( s, first, last ):
     try:
@@ -19,22 +20,26 @@ def find_between( s, first, last ):
 rpchost = '127.0.0.1'
 rpcuser = 'rpcuser'
 rpcpass = 'rpcpass'
-txnconf = 5
+txnconf = 3
 
-print ""
-curblock=0
+if os.path.isfile('progress.dat'):
+   with open('progress.dat', 'r') as progress:
+      curblock=int(progress.read())
+      progress.closed
+else:
+   curblock=0
 rpcpipe = AuthServiceProxy('http://' + rpcuser + ':' + rpcpass + '@' + rpchost + ':44663')
 while(1!=2):
    curblock=curblock+1
    totalblk=rpcpipe.getblockcount()
    if (curblock>totalblk-txnconf):
-      while(1!=2):
-         time.sleep(5)
-         totalblk=rpcpipe.getblockcount()
-         if (curblock==totalblk-txnconf):
-            break
+      with open('/root/moonaudit/progress.dat','w') as progress:
+         progress.write(str(curblock))
+         progress.closed
+         exit()
    rawblockhash=rpcpipe.getblockhash(curblock)
    rawblockdata=rpcpipe.getblock(rawblockhash)
+   print 'checking block %08d' % (curblock)
    timestamp=find_between(str(rawblockdata),'time\': ',', u\'bits')
    sendnum=0
    for txhash in rawblockdata['tx']:
@@ -45,8 +50,11 @@ while(1!=2):
        for outputs in txdata['vout']:
             curvout=curvout+1
             address = ''
-            value = 0 
+            value = 0
             address = find_between(str(outputs), '[u\'', '\']')
             value = find_between(str(outputs), 'Decimal(\'', '\')')
             if (float(str(value))>28999999.99999999):
-               print 'block number: %08d;' % (curblock,) + ' unixtime: ' + timestamp + '; address: ' + address + '; coins sent in one operation: ' + str(value) + '; txid of transaction: ' + txhash
+               print 'block number: %08d;' % (curblock,) + ' unixtime: ' + timestamp + '; address: ' + address + '; coins sent in one operation: ' + str(value                                                  ) + '; txid of transaction: ' + txhash
+               with open('/var/www/moonsend_working.log', 'a') as moonaudit:
+                   moonaudit.write('block number: %08d;' % (curblock,) + ' unixtime: ' + timestamp + '; address: ' + address + '; coins sent in one operation:                                                   ' + str(value) + '; txid of transaction: ' + txhash + '\n')
+               moonaudit.closed
