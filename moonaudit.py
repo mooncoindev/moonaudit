@@ -20,7 +20,7 @@ def find_between( s, first, last ):
 rpchost = '127.0.0.1'
 rpcuser = 'rpcuser'
 rpcpass = 'rpcpass'
-txnconf = 3
+txnconf = 6
 
 if os.path.isfile('progress.dat'):
    with open('progress.dat', 'r') as progress:
@@ -34,7 +34,7 @@ while(1!=2):
    totalblk=rpcpipe.getblockcount()
    if (curblock>totalblk-txnconf):
       with open('/root/moonaudit/progress.dat','w') as progress:
-         progress.write(str(curblock))
+         progress.write(str(curblock-1))
          progress.closed
          exit()
    rawblockhash=rpcpipe.getblockhash(curblock)
